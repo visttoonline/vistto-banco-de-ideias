@@ -20,10 +20,23 @@ Leia nesta ordem:
 ## O Que Você Faz
 
 ### Buscar o arquivo no Google Drive
-- Use `mcp__claude_ai_Google_Drive__search_files` com query: `name contains 'vistto-tiktok' and mimeType = 'text/plain'`
-- Pegue o arquivo mais recente (maior data no nome, formato YYYY-MM-DD)
-- Use `mcp__claude_ai_Google_Drive__read_file_content` para ler o conteúdo
-- Se nenhum arquivo for encontrado, sinalize ⚠️ NOT AVAILABLE e informe o usuário
+
+Tente nesta ordem até encontrar:
+
+1. Use `mcp__claude_ai_Google_Drive__list_recent_files` para listar os arquivos mais recentes
+   - Procure por arquivo com `vistto-tiktok` no nome
+   - Se não aparecer, continue para o passo 2
+
+2. Use `mcp__claude_ai_Google_Drive__search_files` com query: `name contains 'vistto-tiktok'`
+   - Ignore filtro de mimeType — o arquivo pode ter qualquer tipo
+
+3. Use `mcp__claude_ai_Google_Drive__search_files` com query: `name contains 'tiktok'`
+
+4. Se ainda não encontrar, tente: `mcp__claude_ai_Google_Drive__search_files` com query: `name contains 'vistto'`
+
+- Pegue o arquivo mais recente encontrado em qualquer uma das buscas
+- Use `mcp__claude_ai_Google_Drive__read_file_content` com o ID do arquivo encontrado
+- Se nenhum arquivo for encontrado após todos os passos, sinalize ⚠️ NOT AVAILABLE e informe o usuário com os resultados de cada busca
 
 ### Validar os dados
 - Para cada vídeo, verifique se tem: link, nicho, views, likes e descrição
