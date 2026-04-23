@@ -1,0 +1,235 @@
+{
+  "name": "Banco de Ideias Vistto — Coleta TikTok",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 📱 Banco de Ideias Vistto\n**Coleta semanal de trends do TikTok**\n\nEste fluxo roda toda quarta às 6h, coleta vídeos\nnos 5 nichos médicos e salva no Google Drive.\n\nÀs 7h o Claude Code acorda, lê o arquivo e\ngera o banco de ideias completo automaticamente.\n\n**Antes de ativar, configure:**\n① Credencial RapidAPI no nó 'Buscar Vídeos no TikTok'\n② Credencial Google Drive no nó 'Salvar no Google Drive'\n③ ID da pasta de destino no nó 'Salvar no Google Drive'\n\nPara testar manualmente: clique em **Test Workflow**",
+        "height": 260,
+        "width": 380,
+        "color": 7
+      },
+      "id": "sticky-intro",
+      "name": "Instruções Gerais",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 80]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * 3"
+            }
+          ]
+        }
+      },
+      "id": "trigger",
+      "name": "Toda Quarta às 6h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 420]
+    },
+    {
+      "parameters": {
+        "content": "Edite aqui as hashtags de busca de cada nicho.\nCada linha vira uma busca separada no TikTok.",
+        "height": 80,
+        "width": 280,
+        "color": 4
+      },
+      "id": "sticky-buscas",
+      "name": "Nota — Editar Hashtags",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [480, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✏️ EDITE AQUI as hashtags de busca por nicho\nconst buscas = [\n  // Cirurgia Plástica\n  { nicho: 'Cirurgia Plástica', hashtag: 'cirurgiaplastica' },\n  { nicho: 'Cirurgia Plástica', hashtag: 'cirurgiaestetica' },\n  { nicho: 'Cirurgia Plástica', hashtag: 'plasticsurgery' },\n\n  // Ortopedia da Coluna\n  { nicho: 'Ortopedia da Coluna', hashtag: 'ortopedia' },\n  { nicho: 'Ortopedia da Coluna', hashtag: 'dorcostas' },\n  { nicho: 'Ortopedia da Coluna', hashtag: 'coluna' },\n\n  // Harmonização Facial\n  { nicho: 'Harmonização Facial', hashtag: 'harmonizacaofacial' },\n  { nicho: 'Harmonização Facial', hashtag: 'fullface' },\n  { nicho: 'Harmonização Facial', hashtag: 'bichectomia' },\n\n  // Dermatologia\n  { nicho: 'Dermatologia', hashtag: 'dermatologia' },\n  { nicho: 'Dermatologia', hashtag: 'pele' },\n  { nicho: 'Dermatologia', hashtag: 'skincare' },\n\n  // Psicologia\n  { nicho: 'Psicologia', hashtag: 'psicologia' },\n  { nicho: 'Psicologia', hashtag: 'saudemental' },\n  { nicho: 'Psicologia', hashtag: 'terapia' }\n];\n\nreturn buscas.map(b => ({ json: b }));"
+      },
+      "id": "preparar-buscas",
+      "name": "Preparar Buscas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 420]
+    },
+    {
+      "parameters": {
+        "content": "**Configure aqui:**\n1. Crie conta em rapidapi.com\n2. Assine: **TikTok API** (tiktok-api6.p.rapidapi.com)\n3. Copie sua API Key\n4. Adicione como credencial 'Header Auth':\n   - Name: X-RapidAPI-Key\n   - Value: sua-chave-aqui\n\nPlano gratuito: 100 req/mês\nPlano $10/mês: 200.000 req/mês",
+        "height": 160,
+        "width": 300,
+        "color": 3
+      },
+      "id": "sticky-rapidapi",
+      "name": "Nota — Configurar RapidAPI",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [720, 280]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://tiktok-api6.p.rapidapi.com/feed/hashtag",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.hashtag }}"
+            },
+            {
+              "name": "count",
+              "value": "10"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-RapidAPI-Host",
+              "value": "tiktok-api6.p.rapidapi.com"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "buscar-tiktok",
+      "name": "Buscar Vídeos no TikTok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai os dados relevantes de cada resposta da API\nconst buscaOriginal = $('Preparar Buscas').item.json;\nconst nicho = buscaOriginal.nicho;\nconst hashtag = buscaOriginal.hashtag;\n\nconst resposta = $input.item.json;\nconst videos =\n  resposta.data?.videos ||\n  resposta.videos ||\n  resposta.itemList ||\n  resposta.items ||\n  [];\n\nif (!Array.isArray(videos) || videos.length === 0) {\n  console.log(`Sem vídeos para #${hashtag}`);\n  return [];\n}\n\nconst formatados = videos.slice(0, 5).map(v => {\n  const autor =\n    v.author?.uniqueId ||\n    v.authorMeta?.name ||\n    v.author?.nickname ||\n    '⚠️ NOT AVAILABLE';\n\n  const videoId = v.id || v.videoId || '';\n  const link = videoId\n    ? `https://www.tiktok.com/@${autor}/video/${videoId}`\n    : '⚠️ NOT AVAILABLE';\n\n  return {\n    nicho,\n    hashtag,\n    link,\n    autor,\n    views:       v.stats?.playCount    ?? v.playCount    ?? v.statistics?.playCount    ?? '⚠️ NOT AVAILABLE',\n    likes:       v.stats?.diggCount    ?? v.diggCount    ?? v.statistics?.diggCount    ?? '⚠️ NOT AVAILABLE',\n    comentarios: v.stats?.commentCount ?? v.commentCount ?? v.statistics?.commentCount ?? '⚠️ NOT AVAILABLE',\n    descricao:   v.desc || v.description || v.title || '⚠️ NOT AVAILABLE',\n    data: v.createTime\n      ? new Date(v.createTime * 1000).toLocaleDateString('pt-BR')\n      : '⚠️ NOT AVAILABLE'\n  };\n});\n\nreturn formatados.map(v => ({ json: v }));"
+      },
+      "id": "formatar-videos",
+      "name": "Formatar Vídeos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 420]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "juntar-videos",
+      "name": "Juntar Todos os Vídeos",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [1180, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agrupa por nicho, remove duplicatas e monta o texto final\nconst todos = $input.item.json.data || [];\n\nconst porNicho = {};\nfor (const v of todos) {\n  if (!porNicho[v.nicho]) porNicho[v.nicho] = [];\n  const duplicado = porNicho[v.nicho].some(x => x.link === v.link);\n  if (!duplicado && v.link !== '⚠️ NOT AVAILABLE') {\n    porNicho[v.nicho].push(v);\n  }\n}\n\nconst hoje = new Date().toLocaleDateString('pt-BR');\nconst hojeISO = new Date().toISOString().split('T')[0];\nlet texto = `# Dados TikTok — ${hoje}\\n\\n`;\nlet totalVideos = 0;\n\nconst ordem = [\n  'Cirurgia Plástica',\n  'Ortopedia da Coluna',\n  'Harmonização Facial',\n  'Dermatologia',\n  'Psicologia'\n];\n\nfor (const nicho of ordem) {\n  const videos = porNicho[nicho] || [];\n  texto += `## ${nicho}\\n\\n`;\n\n  if (videos.length === 0) {\n    texto += `⚠️ Nenhum vídeo coletado para este nicho.\\n\\n`;\n    continue;\n  }\n\n  videos.forEach((v, i) => {\n    texto += `### Vídeo ${i + 1}\\n`;\n    texto += `🔗 ${v.link}\\n`;\n    texto += `👤 @${v.autor}\\n`;\n    texto += `📊 ${v.views} views | ${v.likes} likes | ${v.comentarios} comentários\\n`;\n    texto += `📝 ${v.descricao}\\n`;\n    texto += `📅 ${v.data}\\n\\n`;\n    totalVideos++;\n  });\n}\n\nreturn [{ json: { texto, data: hoje, hojeISO, totalVideos } }];"
+      },
+      "id": "montar-texto",
+      "name": "Montar Texto Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Converte o texto em arquivo binário para enviar ao Google Drive\nconst texto = $input.item.json.texto;\nconst hojeISO = $input.item.json.hojeISO;\nconst fileName = `vistto-tiktok-${hojeISO}.md`;\n\nconst buffer = Buffer.from(texto, 'utf-8');\nconst binaryData = await this.helpers.prepareBinaryData(\n  buffer,\n  fileName,\n  'text/plain'\n);\n\nreturn [{\n  json: { ...$input.item.json, fileName },\n  binary: { arquivo: binaryData }\n}];"
+      },
+      "id": "preparar-arquivo",
+      "name": "Preparar Arquivo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1620, 420]
+    },
+    {
+      "parameters": {
+        "content": "**Configure aqui:**\n1. Adicione credencial Google Drive (OAuth2)\n2. Crie uma pasta no Drive chamada:\n   **Vistto / TikTok Data**\n3. Abra a pasta, copie o ID da URL:\n   drive.google.com/drive/folders/**[ID AQUI]**\n4. Cole o ID no campo 'Parent Folder ID'\n\nO Claude Code vai ler este arquivo às 7h\ne rodar o banco de ideias automaticamente.",
+        "height": 180,
+        "width": 320,
+        "color": 3
+      },
+      "id": "sticky-drive",
+      "name": "Nota — Configurar Google Drive",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1840, 260]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "={{ $json.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "myDrive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "COLE_AQUI_O_ID_DA_PASTA"
+        },
+        "binaryPropertyName": "arquivo",
+        "options": {
+          "simplifyOutput": true
+        }
+      },
+      "id": "salvar-drive",
+      "name": "Salvar no Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1840, 420]
+    }
+  ],
+  "connections": {
+    "Toda Quarta às 6h": {
+      "main": [
+        [{ "node": "Preparar Buscas", "type": "main", "index": 0 }]
+      ]
+    },
+    "Preparar Buscas": {
+      "main": [
+        [{ "node": "Buscar Vídeos no TikTok", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Vídeos no TikTok": {
+      "main": [
+        [{ "node": "Formatar Vídeos", "type": "main", "index": 0 }]
+      ]
+    },
+    "Formatar Vídeos": {
+      "main": [
+        [{ "node": "Juntar Todos os Vídeos", "type": "main", "index": 0 }]
+      ]
+    },
+    "Juntar Todos os Vídeos": {
+      "main": [
+        [{ "node": "Montar Texto Final", "type": "main", "index": 0 }]
+      ]
+    },
+    "Montar Texto Final": {
+      "main": [
+        [{ "node": "Preparar Arquivo", "type": "main", "index": 0 }]
+      ]
+    },
+    "Preparar Arquivo": {
+      "main": [
+        [{ "node": "Salvar no Google Drive", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1
+}
