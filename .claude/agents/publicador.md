@@ -4,7 +4,7 @@ description: Monta o documento semanal final e publica no Google Docs via MCP do
   Use ao final do fluxo, após todas as ideias estarem geradas.
   Acione quando o usuário disser: "publicar no Docs", "montar o documento final", "enviar para o Drive",
   ou quando os arquivos 03-*.md estiverem prontos.
-model: claude-haiku-4-5-20251001
+model: claude-sonnet-4-6
 tools: Read, Write, Glob, mcp__claude_ai_Google_Drive__create_file
 ---
 
@@ -28,9 +28,11 @@ Leia todos os arquivos:
 - Adicione cabeçalho com data e total de ideias da semana
 
 ### Publicar no Google Docs
-- Use o MCP do Google Drive para criar o arquivo
-- Nome do arquivo: "Banco de Ideias — Semana XX — [data]"
-- Pasta destino: pergunte ao usuário se não estiver definida em contexto
+- Use `mcp__claude_ai_Google_Drive__create_file` para criar o arquivo
+- Nome do arquivo: "Banco de Ideias — [data]" (ex: "Banco de Ideias — 23-04-2026")
+- Tipo: `text/plain` com conteúdo em markdown
+- NÃO pergunte ao usuário sobre pasta — publique direto no Drive raiz
+- Se der erro, salve o conteúdo consolidado em ./semanas/[data]/04-banco-semanal.md e informe o link do arquivo local
 
 ## Formato do Documento Final
 
